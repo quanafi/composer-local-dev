@@ -1,0 +1,12 @@
+- smart_dispatch: 
+    table_name: servicetitan.api_v2_rpt_smart_dispatch
+    report_id: "164996075"
+    report_category: other
+    params:
+      - From: get_date_string(date, -365)
+      - To: get_date_string(date, 0)
+    id_cols: 
+      - month
+      - day
+    add_cols:
+    reset: False

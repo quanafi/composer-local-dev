@@ -1,0 +1,24 @@
+- dataset_invoice_items_scheduled_date: 
+    table_name: servicetitan.api_v2_rpt_dataset_invoice_items
+    report_id: "34118876"
+    report_category: other
+    params:
+      - From: get_date_string(date, -7)
+      - To: get_date_string(date, 365)
+      - DateType: "3"
+    id_cols: 
+      dates_between_col: "scheduled_date"
+    add_cols:
+    reset: False
+- dataset_invoice_items_completion_date: 
+    table_name: servicetitan.api_v2_rpt_dataset_invoice_items
+    report_id: "34118876"
+    report_category: other
+    params:
+      - From: get_date_string(date, -14)
+      - To: get_date_string(date, 0)
+      - DateType: "0"
+    id_cols: 
+      dates_between_col: "completion_date"
+    add_cols:
+    reset: False

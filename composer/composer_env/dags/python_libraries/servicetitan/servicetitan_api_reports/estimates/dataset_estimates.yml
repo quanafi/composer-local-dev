@@ -1,0 +1,13 @@
+- dataset_estimates_sold_on_date: 
+    table_name: servicetitan.api_v2_rpt_dataset_estimates
+    report_id: "33151716"
+    report_category: other
+    params:
+      - From: get_date_string(date, -60)
+      - To: get_date_string(date, 7)
+      - DateType: "0"
+    id_cols: 
+      id_col: "estimate_id"
+      dates_between_col: "sold_on"
+    add_cols:
+    reset: False

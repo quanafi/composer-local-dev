@@ -1,0 +1,12 @@
+- dataset_office_audit_trail: 
+    table_name: servicetitan.api_v2_rpt_dataset_office_audit_trail
+    report_id: "50463657"
+    report_category: other
+    params:
+      - From: get_date_string(date, -3)
+      - To: get_date_string(date, 0)
+      - ActionTypes: "2"
+    id_cols: 
+      dates_between_col: "date"
+    add_cols:
+    reset: False

@@ -33,6 +33,3 @@ pylintrc.test
 pytype_output/
 
 .DS_Store
-
-# Composer CLI
-composer/

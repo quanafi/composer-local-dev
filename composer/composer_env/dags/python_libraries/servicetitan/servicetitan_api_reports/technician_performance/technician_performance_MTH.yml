@@ -1,0 +1,17 @@
+- technician_performance_MTH: 
+    table_name: servicetitan.api_v2_rpt_technician_performance
+    report_id: "33030690"
+    report_category: other
+    params:
+      - From: get_date_string(get_start_of_month(date) - relativedelta(months=1), 0)
+      - To: get_date_string(get_start_of_month(date), -1)
+      - IncludeInactive: str("true")
+    id_cols: 
+      - data_timeframe
+      - data_start_date
+      - data_end_date
+    add_cols:
+      - data_timeframe: str("MTH")
+      - data_start_date: get_date_string(get_start_of_month(date) - relativedelta(months=1), 0)
+      - data_end_date: get_date_string(get_start_of_month(date), -1)
+    reset: False

@@ -1,0 +1,15 @@
+- advanced_dataset_estimates_sold_on_date: 
+    table_name: servicetitan.api_v2_rpt_dataset_estimates
+    # need to replace report id
+    report_id: "81929520"
+    tenant_id: "1019530021"
+    report_category: other
+    params:
+      - From: get_date_string(date, -7)
+      - To: get_date_string(date, 7)
+      - DateType: "0"
+    id_cols: 
+      id_col: "estimate_id"
+      dates_between_col: "sold_on"
+    add_cols:
+    reset: False

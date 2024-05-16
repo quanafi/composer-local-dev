@@ -1,0 +1,18 @@
+- technician_performance_MTD_CHI: 
+    table_name: servicetitan.api_v2_rpt_technician_performance
+    tenant_id: "1019530021"
+    report_id: "82034036"
+    report_category: other
+    params:
+      - From: get_date_string(get_start_of_month(date), 0)
+      - To: get_date_string(date, 0)
+      - IncludeInactive: str("true")
+    id_cols: 
+      - data_timeframe
+      - data_start_date
+      - data_end_date
+    add_cols:
+      - data_timeframe: str("MTD")
+      - data_start_date: get_date_string(get_start_of_month(date), 0)
+      - data_end_date: get_date_string(date, 0)
+    reset: False

@@ -1,0 +1,13 @@
+- dataset_projects_job_dates_chi: 
+    table_name: servicetitan.api_v2_rpt_dataset_projects
+    tenant_id: "1019530021"
+    report_id: "85750776"
+    report_category: other
+    params:
+      - From: get_date_string(date, -7)
+      - To: get_date_string(date,30)
+      - DateType: "0"
+    id_cols: 
+      - "project_number"
+    add_cols:
+    reset: False

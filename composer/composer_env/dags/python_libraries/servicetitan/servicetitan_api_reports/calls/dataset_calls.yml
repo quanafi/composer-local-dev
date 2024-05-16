@@ -1,0 +1,12 @@
+- dataset_calls_call_date: 
+    table_name: servicetitan.api_v2_rpt_dataset_calls
+    report_id: "43713328"
+    report_category: other
+    params:
+      - From: get_date_string(date, -3)
+      - To: get_date_string(date, 1)
+      - FilterBy: "0"
+    id_cols: 
+      dates_between_col: "call_date"
+    add_cols:
+    reset: False

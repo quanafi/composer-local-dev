@@ -1,0 +1,11 @@
+- dataset_timesheets_backfill: 
+    table_name: servicetitan.api_v2_rpt_dataset_timesheets
+    report_id: "101333388"
+    report_category: other
+    params:
+      - From: get_date_string(date, -365)
+      - To: get_date_string(date, 0)
+    id_cols: 
+      dates_between_col: "timesheet_activity_date"
+    add_cols:
+    reset: False

@@ -1,0 +1,17 @@
+- technician_performance_TDY: 
+    table_name: servicetitan.api_v2_rpt_technician_performance
+    report_id: "33030690"
+    report_category: other
+    params:
+      - From: get_date_string(datetime.datetime.today(), 0)
+      - To: get_date_string(datetime.datetime.today(), 0)
+      - IncludeInactive: str("true")
+    id_cols: 
+      - data_timeframe
+      - data_start_date
+      - data_end_date
+    add_cols:
+      - data_timeframe: str("TDY")
+      - data_start_date: get_date_string(datetime.datetime.today(), 0)
+      - data_end_date: get_date_string(datetime.datetime.today(), 0)
+    reset: False

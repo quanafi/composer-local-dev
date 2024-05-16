@@ -1,0 +1,18 @@
+- technician_performance_L90: 
+    table_name: servicetitan.api_v2_rpt_technician_performance
+    report_id: "33030690"
+    report_category: other
+    allow_date_range_division: "No"
+    params:
+      - From: get_date_string(date, -90)
+      - To: get_date_string(date, 0)
+      - IncludeInactive: str("true")
+    id_cols: 
+      - data_timeframe
+      - data_start_date
+      - data_end_date
+    add_cols:
+      - data_timeframe: str("L90")
+      - data_start_date: get_date_string(date, -90)
+      - data_end_date: get_date_string(date, 0)
+    reset: False
