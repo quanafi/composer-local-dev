@@ -1,3 +1,5 @@
-pandas[pandas]==1.4.4
+pandas[pandas]==2.1.2
 pillow
 servicepytan
+sageintacctsdk
+pygsheets
