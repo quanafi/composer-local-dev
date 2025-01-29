@@ -26,6 +26,7 @@ htmlcov/
 # PyCharm configuration:
 .idea
 venv/
+/env/
 
 # Generated files
 pylintrc
@@ -33,3 +34,4 @@ pylintrc.test
 pytype_output/
 
 .DS_Store
+/composer/composer_env/dags/
