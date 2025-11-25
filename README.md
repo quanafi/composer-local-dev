@@ -5,7 +5,7 @@
 ## Overview
 
 Composer Local Development CLI tool streamlines Apache Airflow DAG development
-for Cloud Composer 2 by running an Airflow environment locally. This local
+for Cloud Composer 2 and 3 by running an Airflow environment locally. This local
 Airflow environment uses an image of a specific Cloud Composer version.
 
 You can create a local Airflow environments based on an existing Cloud Composer
@@ -21,9 +21,13 @@ options.
 development purposes**. Cloud Composer does not support using locally
 deployed Cloud Composer images for production purposes.
 
-- Composer Local Development CLI tool supports only Cloud Composer 2 images.
-    You can use any version of Cloud Composer 2 with Composer Local
-    Development CLI tool.
+- Composer Local Development CLI tool supports only Cloud Composer 2 and 3 images.
+
+  - You can use any version of Cloud Composer 2 with Composer Local Development CLI tool.
+
+  - Composer 3 support starts from image versions `composer-3-airflow-2.9.3-build.20`,
+    `composer-3-airflow-2.10.2-build.13` and `composer-3-airflow-2.10.5-build.0`,
+    including all images of Airflow versions greater than `2.10.5`.
 
 - Composer Local Development CLI tool creates local Airflow environments in a
     directory where you run the `composer-dev create` command. To access your
@@ -50,6 +54,10 @@ deployed Cloud Composer images for production purposes.
     scheduler and webserver. Please note that Airflow CLI command
     `airflow triggerer` was released in Airflow 2.2.0 and thus won't
     work with older versions.
+
+- You can access the host machine services via `host.docker.internal`
+    instead of `localhost`. For more information please go to
+    [Interaction with other service on the host machine](#interaction-with-other-service-on-the-host-machine)
 
 ## Google Cloud documentation page
 
@@ -127,6 +135,8 @@ composer-dev create \
   --project PROJECT_ID \
   --port WEB_SERVER_PORT \
   --dags-path LOCAL_DAGS_PATH \
+  --plugins-path LOCAL_PLUGINS_PATH \
+  --database DATABASE_ENGINE \
   LOCAL_ENVIRONMENT_NAME
 ```
 
@@ -137,7 +147,15 @@ Replace:
 - `WEB_SERVER_PORT` with the port that Airflow web server must listen at.
 - `LOCAL_DAGS_PATH` with the path to a local directory where the DAG files are
     located.
+- `LOCAL_PLUGINS_PATH` with the path to a local directory where the plugins
+    files are located.
+- `DATABASE_ENGINE` with the database engine you wanted to use. You can use
+    `sqlite` or `postgresql` (default).
 - `LOCAL_ENVIRONMENT_NAME` with the name of this local Airflow environment.
+
+> If you want to use `LocalExecutor` as Airflow's Core Executor, you need
+> to use the `DATABASE_ENGINE` variable as `postgresql`. This is required
+> for the `LocalExecutor` to work properly.
 
 Example:
 
@@ -178,7 +196,8 @@ composer-dev create LOCAL_ENVIRONMENT_NAME \
     --location LOCATION \
     --project PROJECT_ID \
     --port WEB_SERVER_PORT \
-    --dags-path LOCAL_DAGS_PATH
+    --dags-path LOCAL_DAGS_PATH \
+    --plugins-path LOCAL_PLUGINS_PATH
 ```
 
 Replace:
@@ -191,6 +210,8 @@ Replace:
 - `WEB_SERVER_PORT` with a port for the local Airflow web server.
 - `LOCAL_DAGS_PATH` with a path to a local directory where the DAGs are
     located.
+- `LOCAL_PLUGINS_PATH` with a path to a local directory where the plugins are
+    located.
 
 Example:
 
@@ -200,7 +221,8 @@ composer-dev create example-local-environment \
   --location us-central1 \
   --project example-project \
   --port 8081 \
-  --dags-path example_directory/dags
+  --dags-path example_directory/dags \
+  --plugins-path example_directory/plugins
 ```
 
 ## Enable the container user to access mounted files and directories from the host
@@ -221,6 +243,30 @@ On Linux or MacOS, it's recommended that you run the container as the current ho
 `COMPOSER_CONTAINER_RUN_AS_HOST_USER=True` in `composer/<LOCAL_ENVIRONMENT_NAME>/variables.env`. But the feature is not
 available on Windows, so you might need to update the permissions of the mounted files and directories on the host to
 allow access by the user inside of the container.
+
+## Interaction with Kubernetes clusters
+
+By default, the file `~/.kube/config` is not mounted. The user can specify path to Kubernetes configuration file by
+exporting `KUBECONFIG` environment variable before starting environment.
+
+```bash
+export KUBECONFIG=~/.kube/config
+```
+
+## Interaction with other service on the host machine
+
+Please note that the `localhost` in composer environment is pointing the container itself, not the host machine
+due to how network works on docker containers. For convenience, we configure the container's network to access
+the machine via `host.docker.internal` domain alias. Here are some example;
+
+- for `Redis` you can use `host.docker.internal:6379` instead of
+  `localhost:6379` assuming the `Redis` is running on port `6379`.
+- for `PostgreSQL` you can use `host.docker.internal:25432` instead of
+  `localhost:25432` assuming `PostgreSQL` is running on port `25432`.
+- or any other service by following this pattern: `host.docker.internal:<PORT>`
+
+> If you are running your target service inside another docker container
+> make sure that the port is also exposed to the host machine.
 
 ## Start a local Airflow environment
 
@@ -253,14 +299,17 @@ composer-dev stop LOCAL_ENVIRONMENT_NAME
 
 ## Add and update DAGs
 
-Dags are stored in the directory that you specified in the `--dags-path`
-parameter when you created your local Airflow environment. By default, this
-directory is `./composer/<local_environment_name>/dags`. You can get the
-directory used by your environment with the
+DAGs and plugins are stored in the directories that you specified in the
+`--dags-path` and `--plugins-path` parameters respectively when you created
+your local Airflow environment. By default, these directories are
+`./composer/<local_environment_name>/dags` and
+`./composer/<local_environment_name>/plugins`.
+
+You can get the directories used by your environment with the
 [`describe` command](#get-a-list-and-status-of-local-airflow-environments).
 
-To add and update DAGs, change files in this directory. You do not need to
-restart your local Airflow environment.
+To add and update DAGs and plugins, change files in these directories. You do
+not need to restart your local Airflow environment for changes to take effect.
 
 ## View local Airflow environment logs
 

@@ -133,6 +133,23 @@ class TestResolveGcloudConfigPath:
             utils.resolve_gcloud_config_path()
 
 
+class TestResolveKubeConfigPath:
+    def test_kube_config_set_with_env_variable(self):
+        config_path = "path/to/config"
+        with mock.patch.dict(
+            "os.environ", {constants.KUBECONFIG_PATH_ENV: config_path}
+        ):
+            actual_config_path = utils.resolve_kube_config_path()
+        assert config_path == actual_config_path
+
+    @mock.patch(
+        "composer_local_dev.constants.KUBECONFIG_PATH_ENV", spec_set=True
+    )
+    def test_kube_config_set_without_env_variable(self, mocked_kube_config_env):
+        actual_config_path = utils.resolve_kube_config_path()
+        assert actual_config_path is None
+
+
 class TestAsserEnvironmentNameIsValid:
     @pytest.mark.parametrize(
         "name, message",
@@ -165,17 +182,25 @@ class TestAsserEnvironmentNameIsValid:
 
 
 class TestGetAirflowComposerVersions:
-    def test_get_airflow_composer_versions(self):
+    def test_get_airflow_composer_versions_error(self):
         image_version = "wrong-image-name"
         with pytest.raises(
-            errors.ComposerCliError, match=constants.INVALID_IMAGE_VERSION_ERROR
+            errors.ComposerCliError,
+            match=re.escape(constants.INVALID_IMAGE_VERSION_ERROR),
         ):
             utils.get_airflow_composer_versions(image_version)
 
-    def test_get_airflow_composer_versions_inv(self):
-        image_version = "composer-2.0.8-airflow-2.2.3"
-        exp_airflow_v = "2-2-3"
-        exp_composer_v = "2.0.8"
+    @pytest.mark.parametrize(
+        "image_version, exp_composer_v, exp_airflow_v",
+        [
+            ("composer-2.0.8-airflow-2.2.3", "2.0.8", "2.2.3"),
+            ("composer-2.9.8-airflow-2.10.2", "2.9.8", "2.10.2"),
+            ("composer-3-airflow-2.10.2-build.10", "3", "2.10.2-build.10"),
+        ],
+    )
+    def test_get_airflow_composer_versions(
+        self, image_version, exp_composer_v, exp_airflow_v
+    ):
         airflow_v, composer_v = utils.get_airflow_composer_versions(
             image_version
         )
@@ -200,8 +225,12 @@ def test_filter_image_versions():
         get_image_version_mock("composer-1.0.23-airflow-2.2.3", 1, 1, 2023),
         get_image_version_mock("composer-1.0.22-airflow-2.2.1", 1, 1, 2022),
         get_image_version_mock("composer-2.0.22-airflow-2.2.2", 2, 1, 2022),
+        get_image_version_mock("composer-3-airflow-2.10.2-build.5", 2, 1, 2022),
+        get_image_version_mock(
+            "composer-3-airflow-2.10.2-build.20", 2, 1, 2022
+        ),
     ]
-    expected_versions = [versions[0], versions[1], versions[4]]
+    expected_versions = [versions[0], versions[1], versions[4], versions[6]]
     filtered = utils.filter_image_versions(versions)
     assert filtered == expected_versions
 

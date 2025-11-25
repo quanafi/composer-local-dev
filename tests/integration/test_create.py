@@ -44,12 +44,16 @@ def run_composer_and_assert_exit_code(
 
 
 def assert_environment_directories_exist(
-    env_dir: pathlib.Path, dags_path: Optional[pathlib.Path] = None
+    env_dir: pathlib.Path,
+    dags_path: Optional[pathlib.Path] = None,
+    plugins_path: Optional[pathlib.Path] = None,
 ):
     assert env_dir.exists()
     required_dirs = ["data", "plugins"]
     if dags_path is None:
         required_dirs.append("dags")
+    if plugins_path is None:
+        required_dirs.append("plugins")
     required_files = [
         "airflow.db",
         "config.json",
@@ -68,7 +72,7 @@ def test_create_default(image_exists_mock, tmp_path):
     env_name = "fooenv"
     cmd = (
         f"create "
-        f"--from-image-version composer-2.0.15-airflow-2.2.5 "
+        f"--from-image-version composer-3-airflow-2.9.3-build.20 "
         f"--project 123 "
         f"{env_name}"
     )
@@ -83,7 +87,7 @@ def test_create_provide_dags_path(image_exists_mock, tmp_path):
     dags_path = tmp_path / "test" / "dags"
     cmd = (
         f"create "
-        f"--from-image-version composer-2.0.15-airflow-2.2.5 "
+        f"--from-image-version composer-3-airflow-2.9.3-build.20 "
         f"--project 123 "
         f"--dags-path {dags_path} "
         f"{env_name}"
@@ -91,4 +95,20 @@ def test_create_provide_dags_path(image_exists_mock, tmp_path):
     _, work_dir = run_composer_and_assert_exit_code(cmd, tmp_path)
     env_dir = work_dir / "composer" / env_name
     assert_environment_directories_exist(env_dir, dags_path=dags_path)
+    shutil.rmtree(work_dir)
+
+
+def test_create_provide_plugins_path(image_exists_mock, tmp_path):
+    env_name = "fooenv"
+    plugins_path = tmp_path / "test" / "plugins"
+    cmd = (
+        f"create "
+        f"--from-image-version composer-2.0.15-airflow-2.2.5 "
+        f"--project 123 "
+        f"--plugins-path {plugins_path} "
+        f"{env_name}"
+    )
+    _, work_dir = run_composer_and_assert_exit_code(cmd, tmp_path)
+    env_dir = work_dir / "composer" / env_name
+    assert_environment_directories_exist(env_dir, plugins_path=plugins_path)
     shutil.rmtree(work_dir)

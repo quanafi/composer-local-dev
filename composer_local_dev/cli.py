@@ -47,7 +47,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Environment options",
-            "options": ["--web-server-port", "--dags-path"],
+            "options": ["--web-server-port", "--dags-path", "--plugins-path"],
         },
     ],
     "composer-dev start": [COMMON_OPTIONS],
@@ -225,6 +225,15 @@ option_location = click.option(
     metavar="PATH",
     type=click.Path(file_okay=False),
 )
+@click.option(
+    "--database-engine",
+    "--database",
+    help="Database engine for airflow metadata.",
+    default=constants.DatabaseEngine.postgresql,
+    show_default=True,
+    type=click.Choice(constants.DatabaseEngine.choices(), case_sensitive=False),
+    metavar="DATABASE_ENGINE",
+)
 @required_environment
 @verbose_mode
 @debug_mode
@@ -238,7 +247,9 @@ def create(
     environment: str,
     verbose: bool,
     debug: bool,
+    database_engine: str,
     dags_path: Optional[pathlib.Path] = None,
+    plugins_path: Optional[pathlib.Path] = None,
 ):
     """
     Create local Composer development environment.
@@ -292,6 +303,8 @@ def create(
             env_dir_path=env_dir,
             web_server_port=web_server_port,
             dags_path=dags_path,
+            plugins_path=plugins_path,
+            database_engine=database_engine,
         )
     else:
         env = composer_environment.Environment(
@@ -301,6 +314,8 @@ def create(
             env_dir_path=env_dir,
             port=web_server_port,
             dags_path=dags_path,
+            plugins_path=plugins_path,
+            database_engine=database_engine,
         )
     env.create()
 
@@ -510,13 +525,10 @@ def remove(
         )
         console.get_console().print(md)
     else:
-        container = env.get_container(ignore_not_found=True)
-        if container is not None:
-            if container.status == constants.ContainerStatus.RUNNING:
-                if not force:
-                    raise click.UsageError(constants.USE_FORCE_TO_REMOVE_ERROR)
-                container.stop()
-            container.remove()
+        env.remove(
+            force,
+            force_error=click.UsageError(constants.USE_FORCE_TO_REMOVE_ERROR),
+        )
     shutil.rmtree(env_path)
 
 

@@ -117,9 +117,7 @@ class FailedToParseConfigParamIntRangeError(InvalidConfigurationError):
         self,
         param_name: str,
         value: int,
-        int_range: Tuple[
-            int,
-        ],
+        int_range: Tuple[int,],
     ):
         if len(int_range) == 1:
             allowed_range = f"x>={int_range[0]}"
@@ -169,6 +167,17 @@ class DAGPathNotExistError(ComposerCliError):
     def __init__(self, dags_path):
         super().__init__(
             constants.DAGS_PATH_NOT_EXISTS_ERROR.format(dags_path=dags_path)
+        )
+
+
+class PluginsPathNotExistError(ComposerCliError):
+    """Plugins path does not exist or is not a directory."""
+
+    def __init__(self, plugins_path):
+        super().__init__(
+            constants.PLUGINS_PATH_NOT_EXISTS_ERROR.format(
+                plugins_path=plugins_path
+            )
         )
 
 

@@ -14,7 +14,7 @@
 
 import logging
 import pathlib
-import stat
+import shutil
 from typing import List, Optional
 
 from composer_local_dev import console, constants, errors, utils
@@ -107,28 +107,58 @@ def resolve_dags_path(dags_path: Optional[str], env_dir: pathlib.Path) -> str:
     return str(dags_path.resolve())
 
 
-def create_environment_directories(env_dir: pathlib.Path, dags_path: str):
+def resolve_plugins_path(
+    plugins_path: Optional[str], env_dir: pathlib.Path
+) -> str:
+    """
+    Provides and validates path to the plugins directory.
+    If ``plugins_path`` is None, the path is constructed from ``env_dir`` path
+    and ``plugins`` directory.
+    If ``plugins_path`` is not None, but it does not exist, a warning is raised.
+
+    Returns absolute ``plugins_path`` path.
+    """
+    if plugins_path is None:
+        console.get_console().print(constants.PLUGINS_PATH_NOT_PROVIDED_WARN)
+        plugins_path = env_dir / "plugins"
+    else:
+        plugins_path = pathlib.Path(plugins_path)
+    return str(plugins_path.resolve())
+
+
+def create_environment_directories(
+    env_dir: pathlib.Path, dags_path: str, plugins_path: str
+):
     """
     Create environment directories (overwriting existing ones).
     Environment directory is a directory which contains configuration files for
     composer local environment and files used by environment such as
     requirements.txt file, dags, data and plugins directories.
     """
-    env_dirs = ("data", "plugins")
+    data_dir = "data"
     LOG.info(
-        "Creating environment directories %s in " "%s environment directory.",
-        env_dirs,
+        "Creating environment directory %s in " "%s environment directory.",
+        data_dir,
         env_dir,
     )
     env_dir.mkdir(exist_ok=True, parents=True)
-    for sub_dir in env_dirs:
-        (env_dir / sub_dir).mkdir(exist_ok=True)
+    (env_dir / data_dir).mkdir(exist_ok=True)
+
     dags_path = pathlib.Path(dags_path)
     if not dags_path.is_dir():
         console.get_console().print(
             constants.CREATING_DAGS_PATH_WARN.format(dags_path=dags_path)
         )
         dags_path.mkdir(parents=True)
+
+    plugins_path = pathlib.Path(plugins_path)
+    if not plugins_path.is_dir():
+        console.get_console().print(
+            constants.CREATING_PLUGINS_PATH_WARN.format(
+                plugins_path=plugins_path
+            )
+        )
+        plugins_path.mkdir(parents=True)
 
 
 def get_available_environments(composer_dir: pathlib.Path):
@@ -146,24 +176,30 @@ def get_available_environments(composer_dir: pathlib.Path):
 
 def fix_file_permissions(
     entrypoint: pathlib.Path,
+    run: pathlib.Path,
     requirements: pathlib.Path,
-    airflow_db: pathlib.Path,
+    db_path: pathlib.Path,
 ) -> None:
     """
     Fix file permissions for files used in Docker container when running under
     Linux OS. Windows and MAC OS X don't need it.
     Args:
         entrypoint: Init script of the container. It needs to be executable.
+        run: Script used to run commands as the right user. It needs to be executable.
         requirements: List of PyPi packages to be installed in the container.
         It needs to be readable by all users.
-        airflow_db: path to Airflow Sqlite database file.
+        db_path: path to Airflow Sqlite database file or PostgreSQL data folder.
         It needs to be writeable.
     """
-    if not utils.is_linux_os():
+    if utils.is_windows_os():
         return
     make_file_readable_and_executable(entrypoint)
+    make_file_readable_and_executable(run)
     make_file_writeable(requirements)
-    make_file_writeable(airflow_db)
+    if db_path.is_dir():
+        make_file_readable_and_executable(db_path)
+    else:
+        make_file_writeable(db_path)
 
 
 def make_file_readable_and_executable(file_path: pathlib.Path) -> None:
@@ -175,13 +211,16 @@ def make_file_writeable(file_path: pathlib.Path) -> None:
 
 
 def fix_line_endings(
-    entrypoint: pathlib.Path, requirements: pathlib.Path
+    entrypoint: pathlib.Path,
+    run: pathlib.Path,
+    requirements: pathlib.Path,
 ) -> None:
     """
     Fix windows line endings so the files created under Windows
     can be used in the docker container.
     """
     dos2unix_file(entrypoint)
+    dos2unix_file(run)
     dos2unix_file(requirements)
 
 
@@ -202,8 +241,21 @@ def create_empty_file(path: pathlib.Path, skip_if_exist: bool = True):
         pass
 
 
+def create_empty_folder(path: pathlib.Path, delete_if_exist: bool = False):
+    if delete_if_exist and path.exists():
+        shutil.rmtree(path)
+    return path.mkdir(parents=True, exist_ok=True)
+
+
 def assert_dag_path_exists(path: str) -> None:
     """Raise an error if DAG path does not point to existing directory."""
     if pathlib.Path(path).is_dir():
         return
     raise errors.DAGPathNotExistError(path)
+
+
+def assert_plugins_path_exists(path: str) -> None:
+    """Raise an error if plugins path does not point to existing directory."""
+    if pathlib.Path(path).is_dir():
+        return
+    raise errors.PluginsPathNotExistError(path)

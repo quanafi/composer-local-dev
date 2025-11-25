@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,4 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "0.10.2"
+set -xe
+
+if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then
+    sudo -E -u ${COMPOSER_HOST_USER_NAME} env ENV=${ENV} PYTHONPATH=${PYTHONPATH} PATH=${PATH} "$@"
+else
+    exec "$@"
+fi

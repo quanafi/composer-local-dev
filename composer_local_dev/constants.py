@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import enum
+from dataclasses import dataclass
 
 # The name of environment variable with custom configuration path
 CLOUD_CLI_CONFIG_PATH_ENV = "CLOUDSDK_CONFIG"
+
+# The name of environment variable with custom k8s configuration path
+KUBECONFIG_PATH_ENV = "KUBECONFIG"
 
 OPERATION_TIMEOUT_SECONDS = (
     300  # TODO: Check if we need such timeout, or any timeout at all
@@ -30,23 +34,31 @@ class ContainerStatus(str, enum.Enum):
     CREATED = "created"
 
 
+@dataclass
+class DatabaseEngine:
+    sqlite3 = "sqlite3"
+    postgresql = "postgresql"
+
+    @classmethod
+    def choices(cls):
+        return [cls.sqlite3, cls.postgresql]
+
+
 COMPOSER_VERSIONING_DOCS_LINK = "https://cloud.google.com/composer/docs/concepts/versioning/composer-versions"
 COMPOSER_FAQ_MOUNTING_LINK = "https://cloud.google.com/composer/docs/composer-2/run-local-airflow-environments#troubleshooting-homebrew"
-IMAGE_VERSION_PATTERN = (
-    "composer-([1-9]+\.[0-9]+\.[0-9]+)-airflow-([1-9]+[\.|-][0-9]+[\.|-][0-9]+)"
-)
+IMAGE_VERSION_PATTERN = r"composer-([1-9]+(?:\.[0-9]+\.[0-9]+)?)-airflow-([1-9]+\.[0-9]+\.[0-9]+(?:-build\.[0-9]+)?)"
 ARTIFACT_REGISTRY_IMAGE_URL = (
     "projects/cloud-airflow-releaser/"
     "locations/us/repositories/"
-    "airflow-worker-scheduler-{airflow_v}/packages/"
-    "airflow-worker-scheduler-{airflow_v}/tags/"
-    "composer-{composer_v}-airflow-{airflow_v}"
+    "airflow-worker-scheduler-{dashed_airflow_v}/packages/"
+    "airflow-worker-scheduler-{dashed_airflow_v}/tags/"
+    "{image_tag}"
 )
 DOCKER_REGISTRY_IMAGE_TAG = (
     "us-docker.pkg.dev/cloud-airflow-releaser/"
-    "airflow-worker-scheduler-{airflow_v}/"
-    "airflow-worker-scheduler-{airflow_v}:"
-    "composer-{composer_v}-airflow-{airflow_v}"
+    "airflow-worker-scheduler-{dashed_airflow_v}/"
+    "airflow-worker-scheduler-{dashed_airflow_v}:"
+    "{image_tag}"
 )
 
 AIRFLOW_HOME = "/home/airflow"
@@ -70,6 +82,7 @@ Airflow overrides and environment variables are stored in {env_variables_path}.
 You can put your plugins and data to plugins and data directories 
 available at {env_dir}.
 DAGs can be updated at {dags_path} path.
+Plugins can be updated at {plugins_path} path.
 
 To apply changes done to environment config and PyPI dependencies 
 restart environment using following command:
@@ -80,7 +93,8 @@ START_MESSAGE = """
 Started [bold]{env_name}[/] environment.
 
 1. You can put your DAGs in {dags_path}
-2. Access Airflow at http://localhost:{port}
+2. You can put your plugins in {plugins_path}
+3. Access Airflow at http://localhost:{port}
 """
 # TODO: Fill source environment info
 DESCRIBE_ENV_MESSAGE = """
@@ -88,8 +102,13 @@ Composer [bold]{name}[/] environment is in state: {state}.
 {web_url}
 Image version: {image_version}
 Dags directory: {dags_path}.
+Plugins directory: {plugins_path}.
 The environment is using credentials from gcloud located at {gcloud_path}.
-
+"""
+KUBECONFIG_PATH_MESSAGE = """
+The environment is using K8S credentials located at {kube_config_path}.
+"""
+FINAL_ENV_MESSAGE = """
 This information is based on the data available in the
 environments configurations.
 """
@@ -98,19 +117,30 @@ WEBSERVER_URL_MESSAGE = (
 )
 
 CONTAINER_NAME = "composer-local-dev"
+DB_CONTAINER_NAME = "composer-local-dev-db"
+DOCKER_NETWORK_NAME = "composer-local-dev-network"
 IMAGE_TAG_PERMISSION_DENIED_WARN = (
     "Received permission denied when checking "
     "image existence for {image_tag}"
 )
+ADD_DEBUG_ON_ERROR_INFO = "\n\nTo print debug messages please add --debug flag."
 CREATING_DAGS_PATH_WARN = (
     "Dags path '{dags_path}' does not exist. It will be created."
 )
 DAGS_PATH_NOT_PROVIDED_WARN = (
     "No dags directory provided, using default dags directory."
 )
-ADD_DEBUG_ON_ERROR_INFO = "\n\nTo print debug messages please add --debug flag."
 DAGS_PATH_NOT_EXISTS_ERROR = (
     "Dags path does not exist or is not a directory: {dags_path}"
+)
+CREATING_PLUGINS_PATH_WARN = (
+    "Plugins path '{plugins_path}' does not exist. It will be created."
+)
+PLUGINS_PATH_NOT_PROVIDED_WARN = (
+    "No plugins directory provided, using default plugins directory."
+)
+PLUGINS_PATH_NOT_EXISTS_ERROR = (
+    "Plugins path does not exist or is not a directory: {plugins_path}"
 )
 FAILED_TO_GET_DOCKER_PORT_WARN = (
     "Failed to retrieve used port from the Docker daemon, "
@@ -192,9 +222,7 @@ INVALID_INT_RANGE_VALUE_ERROR = (
     "Invalid value for '{param_name}' configuration value. "
     "{value} is not in the range {allowed_range}."
 )
-INVALID_IMAGE_VERSION_ERROR = (
-    "Composer version must match `composer-x.y.z-airflow-a.b.c` pattern."
-)
+INVALID_IMAGE_VERSION_ERROR = "Composer version must match `composer-(2.y.z|3)-airflow-a.b.c[-build.d]` pattern."
 IMAGE_TAG_DOES_NOT_EXIST_ERROR = (
     "Composer version {image_tag} seems not to be valid. Please make sure to "
     "use existing Cloud Composer version. You can see the list of "
@@ -212,6 +240,9 @@ AUTH_INVALID_ERROR = (
 PULL_IMAGE_MSG = (
     "[bold green]Pulling Composer image. It can take a few minutes."
 )
+DB_PULL_IMAGE_MSG = (
+    "[bold green]Pulling the Database image. It can take a few minutes."
+)
 DOCKER_NOT_AVAILABLE_ERROR = (
     "Docker not available or failed to start. Please ensure docker service "
     "is installed and running. Error: {error}"
@@ -219,7 +250,13 @@ DOCKER_NOT_AVAILABLE_ERROR = (
 DOCKER_CONTAINER_MEMORY_LIMIT = "4g"
 NOT_MODIFIABLE_ENVIRONMENT_VARIABLES = {
     "AIRFLOW_HOME",
-    "AIRFLOW__CORE__EXECUTOR",
+}
+# The following environment variables can only be used with the given possible values
+STRICT_ENVIRONMENT_VARIABLES = {
+    "AIRFLOW__CORE__EXECUTOR": [
+        "LocalExecutor",
+        "SequentialExecutor",
+    ],
 }
 LIST_COMMAND_EPILOG = (
     "\nRun describe command with the environment name to see the detailed "
@@ -250,4 +287,12 @@ USE_FORCE_TO_REMOVE_ERROR = (
 MALFORMED_CONFIG_REMOVING_CONTAINER = (
     "Failed to load environment configuration. Environment Docker container "
     "could not be removed."
+)
+COMPOSER_3_REQUIRES_POSTGRESQL = (
+    "Composer 3 requires postgresql for the standalone Dag Processor to run. Please "
+    "use `--database postgresql`."
+)
+LOCAL_EXECUTOR_REQUIRES_POSTGRESQL = (
+    "Using LocalExecutor requires postgresql for the standalone Dag Processor to run. "
+    "Please use `--database postgresql`."
 )
