@@ -1,8 +1,9 @@
 {
-    "composer_image_version": "composer-2.10.2-airflow-2.10.2",
-    "composer_location": "us-east4",
+    "composer_image_version": "composer-3-airflow-2.10.5-build.19",
+    "composer_location": "us-central1",
     "composer_project_id": "data-warehouse-ecobigquery",
-    "dags_path": ".\\composer\\composer_env\\dags",
+    "dags_path": "C:\\Users\\Dylan Rose\\Documents\\GitHub\\eco-data-pipeline-v2\\composer-local-dev\\composer\\composer_env\\dags",
     "dag_dir_list_interval": 10,
-    "port": 8080
+    "port": 8080,
+    "database_engine": "postgresql"
 }

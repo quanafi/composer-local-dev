@@ -1,5 +1,5 @@
-pandas[pandas]==2.1.2
-pillow
 servicepytan
-sageintacctsdk
 pygsheets
+facebook_business
+sageintacctsdk
+pillow
