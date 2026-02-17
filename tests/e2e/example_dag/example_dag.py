@@ -15,7 +15,13 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.operators.bash import BashOperator
+
+# pylint: disable=g-import-not-at-top
+try:
+    from airflow.providers.standard.operators.bash import BashOperator
+except ImportError:
+    from airflow.operators.bash import BashOperator
+# pylint: enable=g-import-not-at-top
 
 DAG_ID = "example_dag"
 RANDOM_FILE_NAME = "random.bin"
@@ -23,7 +29,7 @@ RANDOM_FILE_NAME = "random.bin"
 
 with DAG(
     dag_id=DAG_ID,
-    schedule_interval="@once",
+    schedule="@once",
     start_date=datetime(2021, 1, 1),
 ) as dag:
     op = BashOperator(
